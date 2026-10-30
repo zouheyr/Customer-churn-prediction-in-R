@@ -1,5 +1,5 @@
 ---
-title: "test github"
+title: "Customer churn prediction in R"
 author: "Zouheyr Ayas"
 date: "15/11/2020"
 output: html_document
