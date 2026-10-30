@@ -1,4 +1,4 @@
-# Customer Churn Prediction in R
+# Customer churn prediction in R
 
 This repository contains a small R-based customer churn prediction project.
 
@@ -9,11 +9,11 @@ The objective is to estimate whether a customer is likely to churn using transac
 Because the dataset does not contain a direct churn flag, the project derives the target from `Buyers.Manual.scorring`:
 - `A` = non-churn / retained
 - `B` = churn risk
-- `N/A` rows are excluded from the supervised model
+- `N/A` rows are excluded from the supervised learning model
 
 ## Files
 
-- `data.csv`: the customer dataset
+- `data.csv`: customer dataset
 - `customer_churn_prediction.Rmd`: notebook version of the analysis
 - `customer_churn_model.R`: script version of the same workflow
 
@@ -31,9 +31,9 @@ source("customer_churn_model.R")
 
 ## Notes
 
-This is a baseline project meant to demonstrate how to build a churn-prediction model in R. It can be extended with:
-- more robust class labeling
+This is a baseline project intended to demonstrate how to build a churn-prediction model in R. It can be extended with:
+- better churn labeling
 - model validation and tuning
 - feature engineering
-- class imbalance techniques
+- class balancing
 - alternative models such as random forest or XGBoost

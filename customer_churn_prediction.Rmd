@@ -1,0 +1,112 @@
+---
+title: "Customer churn prediction in R"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Objective
+
+This notebook builds a simple customer churn prediction model using the dataset in `data.csv`.
+
+The target variable is derived from `Buyers.Manual.scorring`:
+- `B` is treated as a churn event (`1`)
+- `A` is treated as a non-churn customer (`0`)
+- `N/A` rows are removed from the supervised learning dataset
+
+## 1. Load the data
+
+```{r load-data}
+df <- read.csv(
+  "data.csv",
+  stringsAsFactors = FALSE,
+  na.strings = c("NA", "N/A", "n/a", "")
+)
+
+str(df)
+```
+
+## 2. Prepare the target and features
+
+```{r prepare-data}
+df$Buyers.Manual.scorring <- as.character(df$Buyers.Manual.scorring)
+df <- df[!is.na(df$Buyers.Manual.scorring) &
+           df$Buyers.Manual.scorring %in% c("A", "B"), ]
+
+df$churn <- ifelse(df$Buyers.Manual.scorring == "B", 1, 0)
+
+feature_cols <- setdiff(names(df), c("Vendor.ID", "Buyers.Manual.scorring", "churn"))
+
+for (col in feature_cols) {
+  df[[col]] <- suppressWarnings(as.numeric(as.character(df[[col]])))
+}
+
+df <- df[complete.cases(df[c(feature_cols, "churn")]), ]
+summary(df$churn)
+```
+
+## 3. Train / test split
+
+```{r split-data}
+set.seed(42)
+train_idx <- sample.int(nrow(df), size = floor(0.75 * nrow(df)))
+train_df <- df[train_idx, ]
+test_df  <- df[-train_idx, ]
+```
+
+## 4. Fit a logistic regression model
+
+```{r fit-model}
+model_formula <- as.formula(paste("churn ~", paste(feature_cols, collapse = " + ")))
+model <- glm(model_formula, data = train_df, family = binomial())
+summary(model)
+```
+
+## 5. Evaluate the model
+
+```{r evaluate-model}
+probabilities <- predict(model, newdata = test_df, type = "response")
+predictions <- ifelse(probabilities >= 0.5, 1, 0)
+
+confusion_matrix <- table(Actual = test_df$churn, Predicted = predictions)
+print(confusion_matrix)
+
+accuracy <- mean(predictions == test_df$churn)
+precision <- sum(predictions == 1 & test_df$churn == 1) / max(sum(predictions == 1), 1)
+recall <- sum(predictions == 1 & test_df$churn == 1) / max(sum(test_df$churn == 1), 1)
+
+cat(sprintf("Accuracy: %.3f\n", accuracy))
+cat(sprintf("Precision: %.3f\n", precision))
+cat(sprintf("Recall: %.3f\n", recall))
+
+positive_scores <- probabilities[test_df$churn == 1]
+negative_scores <- probabilities[test_df$churn == 0]
+
+if (length(positive_scores) > 0 && length(negative_scores) > 0) {
+  rank_sum <- sum(rank(c(positive_scores, negative_scores))[seq_along(positive_scores)])
+  auc <- (rank_sum - length(positive_scores) * (length(positive_scores) + 1) / 2) /
+    (length(positive_scores) * length(negative_scores))
+  cat(sprintf("AUC: %.3f\n", auc))
+} else {
+  cat("AUC could not be computed because the test set is missing one class.\n")
+}
+```
+
+## 6. Review the most important variables
+
+```{r variable-importance}
+coefficients <- coef(model)
+print(coefficients[order(abs(coefficients), decreasing = TRUE)])
+```
+
+## Interpretation
+
+This is a simple baseline model intended to demonstrate the churn-prediction workflow. In practice, it can be improved with:
+
+- better churn labeling
+- class balancing
+- cross-validation
+- feature engineering
+- comparison with random forest, gradient boosting, or XGBoost
